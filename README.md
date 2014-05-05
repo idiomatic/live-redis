@@ -52,7 +52,7 @@ var live_redis = require('live-redis');
 var port = process.env.PORT || 8080;
 var app = express();
 var server = http.createServer(app);
-live_redis.attach(server, {"db_number": 3}, function() {
+live_redis(server, {"db_number": 3}, function() {
     server.listen(port, function() {
         console.log("listening on port " + port + ".");
     });

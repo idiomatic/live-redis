@@ -78,7 +78,7 @@ class Command extends EdgyEventEmitter
         cb? null, @data
 
 # embue express with engine.io handler
-attach = (server, options..., cb) ->
+exports = module.exports = (server, options..., cb) ->
     options = options[0] or {}
     options.max_channels ?= 10000
     options.max_command_watchers ?= 10000
@@ -117,5 +117,3 @@ attach = (server, options..., cb) ->
             socket.once 'close', ->
                 c.removeListener 'broadcast', socket_listener
     cb? null
-
-module.exports = {attach}
