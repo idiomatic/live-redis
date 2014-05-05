@@ -1,0 +1,15 @@
+{
+  "name": "live-redis",
+  "description": "...",
+  "readme": "...",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/idiomatic/live-redis.git"
+  },
+  "dependencies": {
+    "iced-coffee-script": "~1.7.1-b",
+    "engine.io": "~1.1.0",
+    "redis": "~0.10.1"
+  }
+}
