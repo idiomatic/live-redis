@@ -85,10 +85,12 @@ exports = module.exports = (server, options..., cb) ->
     options.max_socket_commands ?= 10
 
     io = eio.attach server
-    process.on 'SIGINT', ->
+    close = ->
         for _, socket of io.clients
             socket.close()
         io.close()
+    server.on 'close', close
+    process.on 'SIGINT', close
 
     await connect options, defer err, db
     return if err?
