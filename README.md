@@ -1,11 +1,15 @@
 live-redis
 ==========
 
-perform non-destructive single-key Redis commands over a websocket and
-broadcast changes.
+Perform non-destructive single-key [Redis](http://redis.io/) commands
+over an [Engine.IO](https://github.com/LearnBoost/engine.io) websocket
+and in real-time broadcast changes.
 
-requires Redis >= 2.8 and `CONFIG SET notify-keyspace-events AKE`.
+Commands are invoked if they are the first actively monitored
+invocation of that command.  Commands are re-invoked upon a change
+notification from Redis.  The result is cached for subsequent clients.
 
+Requires Redis >= 2.8 and `CONFIG SET notify-keyspace-events AKE`.
 
 client usage
 ------------
@@ -27,4 +31,30 @@ client usage
         }, 5000);
     });
 </script>
+```
+
+The command may take the whitespace-separated form:
+
+    "command key arg1 arg2..."
+
+or JSON.stringified:
+
+    '["command", "key", "arg1", "arg2", ...]'
+
+
+server usage
+------------
+
+```javascript
+var express = require('express');
+require('iced-coffee-script/register');
+var live_redis = require('live-redis');
+var port = process.env.PORT || 8080;
+var app = express();
+var server = http.createServer(app);
+live_redis.attach(server, {"db_number": 3}, function() {
+    server.listen(port, function() {
+        console.log("listening on port " + port + ".");
+    });
+});
 ```
