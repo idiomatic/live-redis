@@ -11,5 +11,8 @@
     "iced-coffee-script": "~1.7.1-b",
     "engine.io": "~1.1.0",
     "redis": "~0.10.1"
+  },
+  "devDependencies": {
+    "engine.io-client": "*"
   }
 }
