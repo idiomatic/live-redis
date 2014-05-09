@@ -19,7 +19,7 @@ client usage
 <script>
     var socket = new eio.Socket();
     socket.on('open', function() {
-        socket.send('get thing');
+        socket.send('watch get thing');
     });
     socket.on('message', function(response) {
         response = JSON.parse(response);
@@ -33,13 +33,29 @@ client usage
 </script>
 ```
 
-The command may take the whitespace-separated form:
+The command takes the whitespace-separated form:
 
-    "command key arg1 arg2..."
+    "operation redis_command key arg1 arg2..."
 
-or JSON.stringified:
 
-    '["command", "key", "arg1", "arg2", ...]'
+operations
+----------
+
+### once
+
+Get the results of the redis_command once.
+
+### watch
+
+Get the results of the redis_command initially and on change.
+
+### ignore
+
+Stop getting changes for a watched command.
+
+### (null)
+
+Same as `once`.
 
 
 server usage

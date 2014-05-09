@@ -38,7 +38,7 @@ await
         do (socket, autocb=defer()) ->
             await
                 socket.once 'message', defer data
-                socket.send 'get foo', defer()
+                socket.send 'watch get foo', defer()
             assert.deepEqual data, JSON.stringify {command:'get foo', data:'bar'}
 
 await

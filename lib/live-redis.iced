@@ -2,6 +2,7 @@
 events = require 'events'
 eio = require 'engine.io'
 redis = require 'redis'
+{parse, quote} = require 'shell-quote'
 
 safe_verbs = ['get', 'bitcount', 'bitpos', 'getbit', 'getrange', 'strlen', 'hexists', 'hget', 'hgetall', 'hkeys', 'hlen', 'hmget', 'hvals', 'llen', 'lindex', 'lrange', 'scard', 'sismember', 'smembers', 'srandmember', 'zcard', 'zcount', 'zlexcount', 'zrange', 'zrangebylex', 'zrangebyscore', 'zrank', 'zrevrange', 'zrevrangebyscore', 'zrevrank', 'zscore']
 
@@ -52,21 +53,13 @@ class Command extends EdgyEventEmitter
         @setMaxListeners max_command_watchers if max_command_watchers?
         # cached results
         @data = undefined
-        try
-            args = JSON.parse @command
-        catch e
-            # warning: does not repect quoting/escaping
-            args = @command.split /\s+/
-        [@verb, @key, @args...] = args
+        [@verb, @key, @args...] = @command
         keyspace.on @key, @keyspace_change
         @on 'lastListener', (event, listener) =>
             keyspace.removeListener @key, @keyspace_change
-        @on 'newListener', (event, listener) =>
-            {data} = @
-            unless data?
-                await @run defer err, data
-                return if err?
-            # new listener gets free data
+        @on 'newListener', (event, listener) ->
+            await @lazy_run defer err, data
+            return if err?
             listener data
     keyspace_change: (event, message) =>
         await @run defer err, data
@@ -76,6 +69,13 @@ class Command extends EdgyEventEmitter
         return cb? 'unsafe' unless @verb in safe_verbs
         await @db[@verb] @key, @args..., defer err, @data
         cb? null, @data
+    lazy_run: (cb) =>
+        {data} = @
+        unless data?
+            await @run defer err, data
+            return cb err if err?
+        # new listener gets free data
+        cb? null, data
 
 # embue express with engine.io handler
 exports = module.exports = (server, options..., cb) ->
@@ -100,22 +100,38 @@ exports = module.exports = (server, options..., cb) ->
 
     commands = {}
     get_command = (command) ->
-        return commands[command] ?=
+        return commands[JSON.stringify command] ?=
             new Command keyspace, db, command, options
                 .on 'lastListener', (event, listener) ->
                     return unless event is 'broadcast'
-                    delete commands[command]
+                    delete commands[JSON.stringify command]
 
     io.on 'connection', (socket) ->
+        listeners = {}
         socket.setMaxListeners options.max_socket_commands
-        socket.on 'message', (command) ->
-            # abusers get booted
-            if socket.listeners('close').length >= options.max_socket_commands
-                return socket.close()
-            socket_listener = (data) ->
-                socket.send JSON.stringify {command, data}
+        socket.on 'message', (message) ->
+            command = parse message
+            if command[0].toLowerCase() in safe_verbs
+                op = 'once'
+            else
+                [op, command...] = command
             c = get_command command
-                .on 'broadcast', socket_listener
-            socket.once 'close', ->
-                c.removeListener 'broadcast', socket_listener
+            request_id = quote command
+            switch op
+                when 'ignore'
+                    c.removeListener 'broadcast', listeners[request_id]
+                when 'watch'
+                    listener = (data) ->
+                        socket.send JSON.stringify [request_id, data]
+                    listeners[request_id] = listener
+                    # abusers get booted
+                    if socket.listeners('close').length >= options.max_socket_commands
+                        return socket.close()
+                    c.on 'broadcast', listener
+                    socket.once 'close', ->
+                        c.removeListener 'broadcast', listener
+                when 'once'
+                    await c.lazy_run defer err, data
+                    return if err?
+                    socket.send JSON.stringify [request_id, data]
     cb? null
