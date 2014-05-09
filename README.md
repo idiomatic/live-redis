@@ -9,7 +9,7 @@ Commands are invoked if they are the first actively monitored
 invocation of that command.  Commands are re-invoked upon a change
 notification from Redis.  The result is cached for subsequent clients.
 
-Requires Redis >= 2.8 and `CONFIG SET notify-keyspace-events AKE`.
+Requires Redis version 2.8 or later and `CONFIG SET notify-keyspace-events AKE`.
 
 client usage
 ------------
@@ -22,8 +22,7 @@ client usage
         socket.send('watch get thing');
     });
     socket.on('message', function(response) {
-        response = JSON.parse(response);
-        console.log(response);
+        console.log(JSON.parse(response));
     });
     socket.on('close', function() {
         setTimeout(function() {
